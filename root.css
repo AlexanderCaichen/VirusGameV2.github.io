@@ -1,0 +1,9 @@
+body {
+	background: blue;
+}
+
+p.testing {
+	color: orange;
+	background-color: white;
+	text-align: right;
+}
