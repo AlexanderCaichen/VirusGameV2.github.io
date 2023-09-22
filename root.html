@@ -3,11 +3,7 @@
 <head>
 	<!-- From: https://stackoverflow.com/questions/11978231/vertically-center-two-elements-within-a-div/31977476#31977476-->
 	<style>
-		* {
-			text-align: center;
-			color: limegreen;
-		}
-		
+
 		body {
 			background: black;
 		}
@@ -29,11 +25,23 @@
 			display: flex;
 			justify-content: center;
 			align-items: center;
+
+			text-align: center;
+
+			overflow: hidden;
+		}
+
+		h1 {
+			color: limegreen;
 		}
 
 		.button {
 			width: 50%;
 			margin: 5px;
+			border-width: 0px;
+
+			color: limegreen;
+			transition: 0.3s;
 		}
 
 		.button:hover {
@@ -45,18 +53,11 @@
 </head>
 
 <body>
-	<div class = "centered">
-		<!-- Flex attempts to split Centered container into (number of elements) areas horizontally. div below prevents horizontal distribution/splitting-->
-		<div>
-			<h1> Virus Simulator </h1>
-			<!-- insert image-->
-			<button class="button" onclick="Start()">Start Game</button>
-			<button class="button" onclick="Set()">Settings</button>
-		</div>
-	</div>
+	<!-- Using javascript injections instead of separate HTML pages since this is supposed to be a game. -->
+	<div id = "Interface"></div>
 
 
-	<div id="tableTest"></div>
+	<!-- <div id="tableTest"></div> -->
 	<script src="root.js"></script>
 </body>
 </html>
