@@ -48,6 +48,27 @@
 			color: purple;
 			background: limegreen;
 		}
+
+		.column {
+			float: left;
+			width: 25%;
+			padding: 10px;
+			margin: 5px;
+			background-color: ;
+		}
+		@media screen and (max-width: 600px) {
+			.column {
+				width: 100%;
+			}
+		}
+
+		th, td {
+			border-color: limegreen;
+		}
+		tr {
+			background-color: white;
+		}
+		tr:hover {background-color: #D6EEEE;}
 	</style>
 	<link rel="stylesheet" href="root.css">
 </head>
@@ -55,7 +76,7 @@
 <body>
 	<!-- Using javascript injections instead of separate HTML pages since this is supposed to be a game. -->
 	<div id = "Interface"></div>
-
+	<div id = "Game"></div>
 
 	<!-- <div id="tableTest"></div> -->
 	<script src="root.js"></script>

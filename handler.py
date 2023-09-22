@@ -29,11 +29,15 @@ import json
 
 async def handler(websocket):
 	while True:
-		#Send random dataframes to website every 0.7 seconds
-		df = pd.DataFrame(np.random.randint(0,50,size=(50, 4)), columns=list('ABCD'))
-		a = df.head(10).to_html()
-		await websocket.send(a)
-		await asyncio.sleep(0.7)
+		for i in ["Cells", "Virus", "InfectCell", "CellTotal", "VirusTotal"]:
+			event = {
+				"type": i,
+				"table": pd.DataFrame(np.random.randint(0,50,size=(50, 4)), columns=list('ABCD')).head(10).to_html()
+			}
+			await websocket.send(json.dumps(event))
+			#await websocket.send("string thing")
+
+		#await asyncio.sleep(0.6)
 
 async def main():
 	print("Starting...")
