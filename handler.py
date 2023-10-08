@@ -27,17 +27,54 @@ import websockets
 
 import json
 
-async def handler(websocket):
-	while True:
-		for i in ["Cells", "Virus", "InfectCell", "CellTotal", "VirusTotal"]:
-			event = {
-				"type": i,
-				"table": pd.DataFrame(np.random.randint(0,50,size=(50, 4)), columns=list('ABCD')).head(10).to_html()
-			}
-			await websocket.send(json.dumps(event))
-			#await websocket.send("string thing")
+import sys
+#verification or else certain code (match) won't work.
+assert sys.version_info >= (3, 10)
 
-		#await asyncio.sleep(0.6)
+async def handler(websocket):
+	#message = await websocket.recv()
+	async for message in websocket:
+		print("yare")
+		try:
+			event = json.loads(message)
+
+			if (event["type"] == "starting" and event["value"]):
+				await tablePrint(websocket)
+		except json.JSONDecodeError as e:
+			print("Invalid JSON format: " + message)
+
+#TODO: create new connection in case `except websockets.ConnectionClosedOK:`
+#TODO: Figure out why sending "a" via websocket crashes stuff.
+async def tablePrint(websocket):
+	print("printing stuff")
+	#Can probably do a `while True` and add a websocket check to see if there are any messages
+	#This below method of needing messages to continue probably allows more synchronization between the cloud and server though.
+	async for message in websocket:
+		#print(message)
+		try:
+			event = json.loads(message)
+		except json.JSONDecodeError as e:
+			print("Invalid JSON format: " + message)
+			continue
+		#TODO: try event[type] or check to see if type even exists
+		
+		match event["type"]:
+			case "starting":
+				if ~event["value"]:
+					break
+			case "continue":
+				for i in ["Cells", "Virus", "InfectCell", "CellTotal", "VirusTotal"]:
+					event = {
+						"type": i,
+						"table": pd.DataFrame(np.random.randint(0,50,size=(50, 4)), columns=list('ABCD')).head(10).to_html()
+					}
+					await websocket.send(json.dumps(event))
+					#await websocket.send("string thing")
+
+		#Without this pause it seems that game will lag for ~15 seconds (most likely due to overflow of messages) until "Exiting game" is printed
+		#await asyncio.sleep(1)
+
+	print("Exiting game")
 
 async def main():
 	print("Starting...")
