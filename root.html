@@ -2,81 +2,18 @@
 <html>
 <head>
 	<!-- From: https://stackoverflow.com/questions/11978231/vertically-center-two-elements-within-a-div/31977476#31977476-->
-	<style>
-
-		body {
-			background: black;
-		}
-
-		.centered {
-			/*https://stackoverflow.com/questions/356809/best-way-to-center-a-div-on-a-page-vertically-and-horizontally*/
-			position: absolute;
-			top: 0;
-			bottom: 0;
-			left: 0;
-			right: 0;
-			
-			margin: auto;
-			height: 50%;
-			width: 50%;
-			border: 1px solid limegreen;
-
-			/*https://stackoverflow.com/questions/5703552/how-can-i-center-text-horizontally-and-vertically-inside-a-div-block*/
-			display: flex;
-			justify-content: center;
-			align-items: center;
-
-			text-align: center;
-
-			overflow: hidden;
-		}
-
-		h1 {
-			color: limegreen;
-		}
-
-		.button {
-			width: 50%;
-			margin: 5px;
-			border-width: 0px;
-
-			color: limegreen;
-			transition: 0.3s;
-		}
-
-		.button:hover {
-			color: purple;
-			background: limegreen;
-		}
-
-		.column {
-			float: left;
-			width: 25%;
-			padding: 10px;
-			margin: 5px;
-			background-color: ;
-		}
-		@media screen and (max-width: 600px) {
-			.column {
-				width: 100%;
-			}
-		}
-
-		th, td {
-			border-color: limegreen;
-		}
-		tr {
-			background-color: white;
-		}
-		tr:hover {background-color: #D6EEEE;}
-	</style>
+	<!--<style></style>-->
 	<link rel="stylesheet" href="root.css">
 </head>
 
 <body>
 	<!-- Using javascript injections instead of separate HTML pages since this is supposed to be a game. -->
 	<div id = "Interface"></div>
-	<div id = "Game"></div>
+	<div id = "Game">
+		<div id = "GameInterface"></div>
+		<div id = "GameTable"></div>
+		<div id = "GameInterface2"></div>
+	</div>
 
 	<!-- <div id="tableTest"></div> -->
 	<script src="root.js"></script>

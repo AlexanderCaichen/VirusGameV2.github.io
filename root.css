@@ -1,0 +1,102 @@
+body {
+	background: black;
+}
+
+* {
+	color: limegreen;
+}
+
+.centered {
+	/*https://stackoverflow.com/questions/356809/best-way-to-center-a-div-on-a-page-vertically-and-horizontally*/
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	
+	margin: auto;
+	height: 50%;
+	width: 50%;
+	border: 1px solid limegreen;
+
+	/*https://stackoverflow.com/questions/5703552/how-can-i-center-text-horizontally-and-vertically-inside-a-div-block*/
+	display: flex;
+	justify-content: center;
+	align-items: center;
+
+	text-align: center;
+
+	overflow: hidden;
+}
+
+/*h1 {
+	color: limegreen;
+}*/
+
+.button {
+	width: 50%;
+	margin: 5px;
+	border-width: 0px;
+
+	transition: 0.3s;
+}
+
+.button:hover {
+	color: purple;
+	background: limegreen;
+}
+
+/***********************************************************/
+
+.column {
+	/*float: left;*/
+	/*background-color: ;*/
+	width: 30%;
+	padding: 10px;
+	margin: 5px;
+	display: inline-block;
+	text-align: center;
+}
+
+.row {
+	/* "Clearfix Hack" (used in conjunction with float:left)
+	content: "";
+	clear: both;
+	display: table;
+	*/
+	/* Centers .column divs*/
+	text-align: center;
+}
+
+/* Center table */
+table {
+	margin: 0 auto;
+}
+
+th, td {
+	border-color: limegreen;
+}
+tr {
+	background-color: white;
+}
+tr:hover {background-color: #D6EEEE;}
+
+/***********************************************************/
+
+#GameInterface2 {
+	text-align:center;
+}
+
+/* "text button" */
+[id^="tbu"] {
+    border:1px solid limegreen;
+    margin:0;
+    padding:0;
+    width:20px;
+    cursor: pointer;
+	background: darkslategray;
+}
+[id^="tbu"]:hover {
+	color:black;
+	background: limegreen;
+}

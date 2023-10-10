@@ -31,24 +31,31 @@ import sys
 #verification or else certain code (match) won't work.
 assert sys.version_info >= (3, 10)
 
+from simulation import Game
+
 async def handler(websocket):
 	#message = await websocket.recv()
 	async for message in websocket:
-		print("yare")
 		try:
 			event = json.loads(message)
 
-			if (event["type"] == "starting" and event["value"]):
-				await tablePrint(websocket)
+			if (event["type"] == "starting" and event["yes"]):
+				game = Game()
+				event = {
+					"type": "baseGenome",
+					"data": game.origin
+				}
+				print(game.origin)
+				await websocket.send(json.dumps(event))
+				await tablePrint(websocket, game)
 		except json.JSONDecodeError as e:
 			print("Invalid JSON format: " + message)
 
 #TODO: create new connection in case `except websockets.ConnectionClosedOK:`
-#TODO: Figure out why sending "a" via websocket crashes stuff.
-async def tablePrint(websocket):
+async def tablePrint(websocket, game):
 	print("printing stuff")
-	#Can probably do a `while True` and add a websocket check to see if there are any messages
-	#This below method of needing messages to continue probably allows more synchronization between the cloud and server though.
+
+	#Requiring a "confirmation message" from root.js allows more synchronization between the cloud and server.
 	async for message in websocket:
 		#print(message)
 		try:
@@ -60,7 +67,7 @@ async def tablePrint(websocket):
 		
 		match event["type"]:
 			case "starting":
-				if ~event["value"]:
+				if ~event["yes"]:
 					break
 			case "continue":
 				for i in ["Cells", "Virus", "InfectCell", "CellTotal", "VirusTotal"]:
@@ -70,9 +77,8 @@ async def tablePrint(websocket):
 					}
 					await websocket.send(json.dumps(event))
 					#await websocket.send("string thing")
-
-		#Without this pause it seems that game will lag for ~15 seconds (most likely due to overflow of messages) until "Exiting game" is printed
-		#await asyncio.sleep(1)
+			case _:
+				print("TBA")
 
 	print("Exiting game")
 
