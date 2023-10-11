@@ -39,13 +39,14 @@ async def handler(websocket):
 		try:
 			event = json.loads(message)
 
+			#Start game and begin simulation
 			if (event["type"] == "starting" and event["yes"]):
 				game = Game()
 				event = {
 					"type": "baseGenome",
 					"data": game.origin
 				}
-				print(game.origin)
+
 				await websocket.send(json.dumps(event))
 				await tablePrint(websocket, game)
 		except json.JSONDecodeError as e:
@@ -54,10 +55,10 @@ async def handler(websocket):
 #TODO: create new connection in case `except websockets.ConnectionClosedOK:`
 async def tablePrint(websocket, game):
 	print("printing stuff")
+	paused = False
 
 	#Requiring a "confirmation message" from root.js allows more synchronization between the cloud and server.
 	async for message in websocket:
-		#print(message)
 		try:
 			event = json.loads(message)
 		except json.JSONDecodeError as e:
@@ -67,9 +68,10 @@ async def tablePrint(websocket, game):
 		
 		match event["type"]:
 			case "starting":
-				if ~event["yes"]:
+				if not event["yes"]:
 					break
 			case "continue":
+				#Reminder that ~False = -1 and ~True = -2
 				for i in ["Cells", "Virus", "InfectCell", "CellTotal", "VirusTotal"]:
 					event = {
 						"type": i,
@@ -77,8 +79,11 @@ async def tablePrint(websocket, game):
 					}
 					await websocket.send(json.dumps(event))
 					#await websocket.send("string thing")
+				await asyncio.sleep(1)
+			case "pause":
+				paused = event["yes"]
 			case _:
-				print("TBA")
+				print(event)
 
 	print("Exiting game")
 

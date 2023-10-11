@@ -44,6 +44,7 @@ body {
 .button:hover {
 	color: purple;
 	background: limegreen;
+	cursor: pointer;
 }
 
 /***********************************************************/
@@ -80,6 +81,11 @@ tr {
 	background-color: white;
 }
 tr:hover {background-color: #D6EEEE;}
+/***********************************************************/
+
+#GameInterface {
+	text-align:right;
+}
 
 /***********************************************************/
 
