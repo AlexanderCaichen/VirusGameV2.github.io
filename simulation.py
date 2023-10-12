@@ -47,6 +47,10 @@ class Game:
 			#Generate VirusTotal
 			#Add cell to InfectCell
 
-
+	def modifyGene(self,index: int, newChar: str):
+		if (len(newChar) != 1):
+			print("Somehow obtained >1 character input at once for modifyGene: " + newChar)
+			return
+		self.origin = self.origin[:index] + newChar + self.origin[index+1:]
 
 

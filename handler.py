@@ -1,25 +1,14 @@
 #!/usr/bin/env python
 
-#https://stackoverflow.com/questions/13175510/call-python-function-from-javascript-code
-#^ Suggests to use NODE.js child processes that run python or a server to run python
-
-# PyNode is also an option that allows python calls in JS
-# PyNode might not work well with timing (since this is a simulation, asynchronous updating is desired)
-# PyNode also won't work because we want python to continuously update to JS
-
-#Decision: use server to run python code and POST to JS for data updates
-
-# Issue: Python code needs to continue running simulation even if GET from JS
-#  So: JS should call python code once and python code continuously POSTS to JS to print in HTML
-# Solution: WebSocket to enable realtime communication without HTTP request/response
-
 # Most of the base infrastructure is based on this tutorial:
 #  https://websockets.readthedocs.io/en/stable/intro/tutorial1.html
 
-# TBA: Deploy websocket server to Kubernetes or similar service.
-
+#Temporary. Will be removed when Game logic stuff is complete.
 import pandas as pd 
 import numpy as np
+
+#Handles game logic
+from simulation import Game
 
 import asyncio
 
@@ -27,11 +16,14 @@ import websockets
 
 import json
 
+#For checking python version
 import sys
 #verification or else certain code (match) won't work.
 assert sys.version_info >= (3, 10)
 
-from simulation import Game
+#For deploying to Heroku
+import os
+import signal
 
 async def handler(websocket):
 	#message = await websocket.recv()
@@ -80,6 +72,9 @@ async def tablePrint(websocket, game):
 					await websocket.send(json.dumps(event))
 					#await websocket.send("string thing")
 				await asyncio.sleep(1)
+			case "keyMod":
+				game.modifyGene(event["index"], event["newChar"])
+				print(game.origin)
 			case "pause":
 				paused = event["yes"]
 			case _:
@@ -89,8 +84,14 @@ async def tablePrint(websocket, game):
 
 async def main():
 	print("Starting...")
-	async with websockets.serve(handler, "", 8001):
-		await asyncio.Future()  # run forever
+	# Set the stop condition when receiving SIGTERM.
+	loop = asyncio.get_running_loop()
+	stop = loop.create_future()
+	loop.add_signal_handler(signal.SIGTERM, stop.set_result, None)
+
+	port = int(os.environ.get("PORT", "8001"))
+	async with websockets.serve(handler, "", port):
+		await stop  # run forever
 
 if __name__ == '__main__':
 	asyncio.run(main())
