@@ -12,14 +12,17 @@ var primeFunc = null;
 //https://stackoverflow.com/questions/34589488/es6-immediately-invoked-arrow-function
 //Doesn't make sense to make defining "websocket" a separate function if the function won't be used ever again.
 const websocket = new WebSocket((function() {
-	if (window.location.host === "aaugustin.github.io") {
+	console.log("Connecting to " + String(window.location.host) + "...");
+	if (window.location.host === "alexandercaichen.github.io/") {
+		//Reminder that full link is "https://alexandercaichen.github.io/root.html"
 		return "wss://websockets-tutorial.herokuapp.com/";
-	} else if (window.location.host === "localhost:8000" || window.location.pathname.slice(-9) == "root.html") {
-		//Note: slice(-9) is for local testing purposes. 
+	} else if (window.location.pathname.slice(-9) == "root.html") {
+		//For local testing purposes. 
 		return "ws://localhost:8001/";
 	} else {
 		throw new Error("Unknown host: " + String(window.location.host));
 	}
+	console.log("Success");
 })());
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -145,13 +148,13 @@ function End() {
 //FUNCTIONALITIES 
 //############################
 
-//
+//Changes button behavior to accept keyboard inputs.
 function Primed(index) {
 	//reset any buttons that were primed but not set
 	if (primed) {
 		primed.style = "";
 		primed.removeEventListener("keypress", primeFunc);
-		console.log("reset")
+		//console.log("reset")
 	}
 	
 	const tempRef = document.getElementById("tbu" + String(index));
@@ -160,7 +163,7 @@ function Primed(index) {
 	primeFunc = (event) => {SetKey(event, index)};
 	tempRef.addEventListener("keypress", primeFunc);
 	primed = tempRef;
-	console.log("primed" + String(index));
+	//console.log("primed" + String(index));
 }
 
 function SetKey(event, index) {
@@ -169,7 +172,6 @@ function SetKey(event, index) {
 	tempRef.innerHTML = event.key;
 	websocket.send(JSON.stringify({type: "keyMod", index: index, newChar: event.key}));
 	tempRef.style = "";
-	//Note arrow function won't work here due to different reference
 	tempRef.removeEventListener("keypress", primeFunc);
 	/*
 	//For bug where mouse and key click are in quick succession of each other (in that order):
@@ -180,7 +182,7 @@ function SetKey(event, index) {
 		console.log("reset" + String(primed))
 	}*/
 	primed = null;
-	console.log("remove" + String(index))
+	// console.log("remove" + String(index));
 }
 
 function Pause(truth) {

@@ -1,0 +1,21 @@
+# fly.toml app configuration file generated for virus-game-v2 on 2023-10-16T21:39:15-07:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "virus-game-v2"
+kill_signal = "SIGTERM"
+
+[build]
+	builder = "paketobuildpacks/builder:base"
+
+[[services]]
+	internal_port = 8001
+	protocol = "tcp"
+
+	[[services.http_checks]]
+		path = "/healthz"
+
+	[[services.ports]]
+		handlers = ["tls", "http"]
+		port = 443

@@ -11,8 +11,10 @@ import numpy as np
 from simulation import Game
 
 import asyncio
-
 import websockets
+import http
+import signal
+import os
 
 import json
 
@@ -21,9 +23,6 @@ import sys
 #verification or else certain code (match) won't work.
 assert sys.version_info >= (3, 10)
 
-#For deploying to Heroku
-import os
-import signal
 
 async def handler(websocket):
 	#message = await websocket.recv()
@@ -82,16 +81,26 @@ async def tablePrint(websocket, game):
 
 	print("Exiting game")
 
+#From https://websockets.readthedocs.io/en/stable/howto/fly.html
+#https://fly.io/docs/app-guides/continuous-deployment-with-github-actions/
+#https://www.tutorialspoint.com/python_network_programming/python_http_server.htm
+async def health_check(path, request_headers):
+	if path == "/healthz":
+		return http.HTTPStatus.OK, [], b"OK\n"
+
 async def main():
 	print("Starting...")
 	# Set the stop condition when receiving SIGTERM.
 	loop = asyncio.get_running_loop()
 	stop = loop.create_future()
 	loop.add_signal_handler(signal.SIGTERM, stop.set_result, None)
-
-	port = int(os.environ.get("PORT", "8001"))
-	async with websockets.serve(handler, "", port):
-		await stop  # run forever
+	async with websockets.serve(
+		handler,
+		host="",
+		port=8001,
+		process_request=health_check,
+	):
+		await stop
 
 if __name__ == '__main__':
 	asyncio.run(main())
