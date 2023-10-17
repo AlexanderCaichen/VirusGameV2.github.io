@@ -13,7 +13,7 @@ var primeFunc = null;
 //Doesn't make sense to make defining "websocket" a separate function if the function won't be used ever again.
 const websocket = new WebSocket((function() {
 	console.log("Connecting to " + String(window.location.host) + "...");
-	if (window.location.host == "alexandercaichen.github.io") {
+	if (window.location.host === "alexandercaichen.github.io") {
 		//Reminder that full link is "https://alexandercaichen.github.io/root.html"
 		return "wss://virus-game-v2.fly.dev";
 	} else if (window.location.pathname.slice(-9) == "root.html") {
