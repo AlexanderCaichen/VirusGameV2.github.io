@@ -127,8 +127,7 @@ function StartGame() {
 	document.getElementById("Game").innerHTML = "<div id = \"GameInterface\"><button id=\"Pause\" class=\"button\" style=\"width:150px\" onclick=\"Pause(true)\">Pause</button><div id=\"tick\"></div></div><div id = \"GameTable\"></div><div id = \"GameInterface2\"</div>";
 
 	document.getElementById("GameTable").style.border = "1px limegreen solid";
-	document.getElementById("GameTable").innerHTML = "<div class=\"row\"><div class=\"column\" id = \"Cells\">TBA</div><div class=\"column\" id = \"Virus\">TBA</div><div class=\"column\" id = \"InfectCell\">TBA</div><div class=\"column\" id = \"CellTotal\">TBA</div><div class=\"column\" id = \"VirusTotal\">TBA</div></div>";
-
+	document.getElementById("GameTable").innerHTML = "<div class=\"row\"><div class=\"column\">Cells<div id = \"Cells\">TBA</div></div><div class=\"column\">Free Floating Viruses<div id = \"FreeVirus\">TBA</div></div><div class=\"column\">Infected Cells<div id = \"InfectCell\">TBA</div></div><div class=\"column\">Cell Totals<div id = \"CellTotal\">TBA</div></div><div class=\"column\">Virus Totals<div id = \"VirusTotal\">TBA</div></div></div>";
 
 	//Starting game
 	const event = {type: "starting", yes: true};
