@@ -39,12 +39,12 @@ async def handler(websocket):
 				}
 
 				await websocket.send(json.dumps(event))
-				await tablePrint(websocket, game)
+				await runGame(websocket, game)
 		except json.JSONDecodeError as e:
 			print("Invalid JSON format: " + message)
 
 #TODO: create new connection in case `except websockets.ConnectionClosedOK:`
-async def tablePrint(websocket, game):
+async def runGame(websocket, game):
 	print("printing stuff")
 	paused = False
 
@@ -59,17 +59,12 @@ async def tablePrint(websocket, game):
 		
 		match event["type"]:
 			case "starting":
+				#Reminder that ~False = -1 and ~True = -2
 				if not event["yes"]:
 					break
 			case "continue":
-				#Reminder that ~False = -1 and ~True = -2
-				for i in ["Cells", "Virus", "InfectCell", "CellTotal", "VirusTotal"]:
-					event = {
-						"type": i,
-						"table": pd.DataFrame(np.random.randint(0,50,size=(50, 4)), columns=list('ABCD')).head(10).to_html()
-					}
-					await websocket.send(json.dumps(event))
-					#await websocket.send("string thing")
+				game.forwardTime()
+				await printTables(websocket, game)
 				await asyncio.sleep(1)
 			case "keyMod":
 				game.modifyGene(event["index"], event["newChar"])
@@ -80,6 +75,20 @@ async def tablePrint(websocket, game):
 				print(event)
 
 	print("Exiting game")
+
+
+#Send all tables to JS
+async def printTables(websocket, game):
+	await websocket.send(json.dumps({"type": "table", "name":"Cells", "data": game.Cells.head(10).to_html()}))
+	await websocket.send(json.dumps({"type": "table", "name":"Virus", "data": game.Virus.head(10).to_html()}))
+	await websocket.send(json.dumps({"type": "table", "name":"InfectCell", "data": game.InfectCell.head(10).to_html()}))
+	await websocket.send(json.dumps({"type": "table", "name":"CellTotal", "data": game.CellTotal.head(10).to_html()}))
+	await websocket.send(json.dumps({"type": "table", "name":"VirusTotal", "data": game.VirusTotal.head(10).to_html()}))
+
+
+#######################################
+####### Connection Handling ###########
+#######################################
 
 #From https://websockets.readthedocs.io/en/stable/howto/fly.html
 #https://fly.io/docs/app-guides/continuous-deployment-with-github-actions/

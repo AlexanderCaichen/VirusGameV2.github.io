@@ -5,6 +5,7 @@ var gameStart = false;
 var count = 0;
 var tick = 0;
 var pause = false;
+
 var primed = null;
 var primeFunc = null;
 
@@ -22,14 +23,13 @@ const websocket = new WebSocket((function() {
 	} else {
 		throw new Error("Unknown host: " + String(window.location.host));
 	}
-	console.log("Success");
 })());
 
 window.addEventListener("DOMContentLoaded", () => {
-	receiveTable(websocket);
+	receiveMessage(websocket);
 })
 
-function receiveTable(websocket) {
+function receiveMessage(websocket) {
 	websocket.addEventListener("message", ({data}) => {
 		try {
 			//document.getElementById("tableTest").innerHTML = data.data; <= (data)
@@ -56,13 +56,9 @@ function receiveTable(websocket) {
 				websocket.send(JSON.stringify(event));
 				gameStart = true;
 				break;
-			case "Cells":
-			case "Virus":
-			case "InfectCell":
-			case "CellTotal":
-			case "VirusTotal":
+			case "table":
 				if (gameStart) {
-					document.getElementById(message.type).innerHTML = message.table;
+					document.getElementById(message.name).innerHTML = message.data;
 					count++;
 					//Send "Continue" every 5 table updates or else message queue will be backed up
 					if (count >= 5) {
@@ -141,7 +137,7 @@ function StartGame() {
 
 // Interface when game ends
 function End() {
-	document.getElementById("Interface").innerHTML = "<button class=\"button\" style=\"width:150px\" onclick=\"Init()\">Return to Main Menu</button>";
+	document.getElementById("Interface").innerHTML = "<button class=\"button\" style=\"width:150px; float:left\" onclick=\"Init()\">Return to Main Menu</button>";
 }
 
 //############################
