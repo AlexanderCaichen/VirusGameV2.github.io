@@ -6,6 +6,7 @@
 #Temporary. Will be removed when Game logic stuff is complete.
 import pandas as pd 
 import numpy as np
+pd.set_option('mode.chained_assignment', None)
 
 #Handles game logic
 from simulation import Game
@@ -60,8 +61,11 @@ async def runGame(websocket, game):
 		match event["type"]:
 			case "starting":
 				#Reminder that ~False = -1 and ~True = -2
-				if not event["yes"]:
-					break
+				#Bug: baseGenome message sent by handler() but Init() is called before continue message can be sent from receiveMessage() in root.js.
+				#Removing condition for break allows someone to restart the game in case this bug happens.
+				if event["yes"]:
+					print("Sorry about the bug.")
+				break
 			case "continue":
 				game.forwardTime()
 				await printTables(websocket, game)
@@ -79,11 +83,16 @@ async def runGame(websocket, game):
 
 #Send all tables to JS
 async def printTables(websocket, game):
-	await websocket.send(json.dumps({"type": "table", "name":"Cells", "data": game.Cells.iloc[:, :-1].head(10).to_html()}))
+	await websocket.send(json.dumps({"type": "table", "name":"Cells", "data": game.Cells.head(10).iloc[:, :-2].to_html()}))
 	await websocket.send(json.dumps({"type": "table", "name":"FreeVirus", "data": game.FreeVirus.head(10).iloc[:, :-1].to_html()}))
 	await websocket.send(json.dumps({"type": "table", "name":"InfectCell", "data": game.InfectCell.head(10).iloc[:, :-1].to_html()}))
-	await websocket.send(json.dumps({"type": "table", "name":"CellTotal", "data": game.CellTotal.head(10).to_html()}))
-	await websocket.send(json.dumps({"type": "table", "name":"VirusTotal", "data": game.VirusTotal.head(10).to_html()}))
+
+	data = game.CellTotal.head(10)
+	data.loc["Total"] = game.CellTotal.sum()
+	await websocket.send(json.dumps({"type": "table", "name":"CellTotal", "data": data.to_html()}))
+	data = game.VirusTotal.head(10)
+	data.loc["Total"] = game.VirusTotal.sum()
+	await websocket.send(json.dumps({"type": "table", "name":"VirusTotal", "data": data.to_html()}))
 
 
 #######################################

@@ -92,13 +92,13 @@ function Init() {
 
 	//Stop game from running if a game has already started.
 	if (gameStart) {
+		gameStart = false;
 		//Send signal to stop game
 		const event = {type: "starting", yes: false}; 
 		websocket.send(JSON.stringify(event));
 		tick = 0;
 		count = 0;
 		pause = false;
-		gameStart = false;
 	}
 
 	//Erase game interface
