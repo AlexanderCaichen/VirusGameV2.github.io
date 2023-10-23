@@ -26,7 +26,7 @@ class Game:
 	#cLifeSpan: how long it takes for your cell to die (life)
 	#???vLifeSpan: how long it takes for your virus to die if not infect cell (see it as immune system naturally clearing foreign bodies???)
 	#dmg: how much damage virus does to cell each replication
-	def __init__(self, geneCount: int = 5, vMutRate: float = 0.2, cMutRate: float = 5, startingCells: int = 4, repCRate: int = 5, repVRate: int = 3, vLifeSpan: int = 15, lifeSpan: int = 30, dmg: int = 1):
+	def __init__(self, geneCount: int = 5, vMutRate: float = 0.2, cMutRate: float = 5, startingCells: int = 4, repCRate: int = 5, repVRate: int = 3, vLifeSpan: int = 15, lifeSpan: int = 8, dmg: int = 1):
 		self.geneCount = geneCount
 		self.mutateChance = vMutRate
 		self.cooldown = cMutRate
@@ -52,7 +52,7 @@ class Game:
 		self.InVirus = pd.DataFrame(columns=["Gene", "cellID", "next", "numbers"])
 		self.CellTotal = pd.DataFrame(columns=["Gene", "Total Exist", "Curr Alive"]).set_index('Gene')
 		self.VirusTotal = pd.DataFrame(columns=["Gene", "Total Exist", "Curr Existing"]).set_index('Gene')
-		#      Need row for total stats
+		#	  Need row for total stats
 
 		
 		#Create startingCells cells, fill in Cells dataframe
@@ -75,16 +75,16 @@ class Game:
 		#Note: lowest infection AVERAGE given thousands of attempts is ~0.51 (this is with cellGene all being 'a')
 		chance = 1
 		while 0.45 > chance or chance > 0.55:
-		    newV = random.choices(string.ascii_lowercase + string.digits, k=geneCount)
-		    numbersV = np.array([self.characterDict.get(value, value) for value in newV])
-		    #Worry about mapping speed later.
-		    #https://stackoverflow.com/questions/35215161/most-efficient-way-to-map-function-over-numpy-array
-		    #sum((1-abs(numbersV - numbersC)/len(characterDict))/geneCount)
-		    
-		    chance = 1 - sum(abs(numbersV - numbersC))/(len(self.characterDict)*geneCount)
-		    loops+=1
-		    summer += chance
-		    #print(newV, chance, loops, summer/loops)
+			newV = random.choices(string.ascii_lowercase + string.digits, k=geneCount)
+			numbersV = np.array([self.characterDict.get(value, value) for value in newV])
+			#Worry about mapping speed later.
+			#https://stackoverflow.com/questions/35215161/most-efficient-way-to-map-function-over-numpy-array
+			#sum((1-abs(numbersV - numbersC)/len(characterDict))/geneCount)
+			
+			chance = 1 - sum(abs(numbersV - numbersC))/(len(self.characterDict)*geneCount)
+			loops+=1
+			summer += chance
+			#print(newV, chance, loops, summer/loops)
 		print("Average binding chance from {} attempts: {} (Final binding chance is {})".format(loops, round(summer/loops, 3), round(chance, 3)))
 		#print(newV, 1-abs(numbersV - numbersC)/len(characterDict)) 
 
@@ -96,13 +96,13 @@ class Game:
 		#https://stackoverflow.com/a/76132725
 		#"cheaper/faster to append to a list and create a DataFrame in one go."
 		#In case the startingCells number is in the thousands
-		temp = [{"Gene": self.origin, "Next Replication": self.crate, "Life": self.life, "InfectedBy": [], "numbers":numbersC}
-		        for _ in range(startingCells)]
+		#+1 to self.crate and self.life due to initial forrwardTime() ran at tick=0
+		temp = [{"Gene": self.origin, "Next Replication": self.crate+1, "Life": self.life+1, "InfectedBy": [], "numbers":numbersC}
+				for _ in range(startingCells)]
 
 		#According to ChatGPT the for loop is better for very large datasets where memory efficiency may be an issue. 
-		#Also simply doing `temp*startingCells` will create references to InfectedBy's list instead of making separate lists 
+		#Also simply doing `temp*startingCells` will create references to InfectedBy column's list instead of making separate lists 
 		#(pointer issue if you want to append to only 1 list)
-		#Can do something like `Cells.at[6, "InfectedBy"] = Cells.at[7, "InfectedBy"] + [12]` but a simple append seems easier
 
 		"""
 		#Below code creates multiple new columns with a character in each for easier future calculations
@@ -116,12 +116,13 @@ class Game:
 		self.Cells["ID"] = np.random.randint(sys.maxsize, size=startingCells)
 
 		#NOTE THAT doing Cells.at[index, column] is faster than Cells["InfectedBy"][0] bracket notation due to no intermediate Series object
+		#Can do something like `Cells.at[6, "InfectedBy"] = Cells.at[7, "InfectedBy"] + [12]` but a simple append seems easier
 		newVName = ''.join(newV)
 		self.Cells.at[0,"InfectedBy"].append(newVName)
 
 		#FreeVirus doesn't contain data yet: existing virus already infected cell (may change in future)
-
-		self.InVirus.loc[0] = [newVName, self.Cells.at[0, "ID"], self.vrate, numbersV]
+		#+1 to self.vrate due to initial forrwardTime() ran at tick=0
+		self.InVirus.loc[0] = [newVName, self.Cells.at[0, "ID"], self.vrate+1, numbersV]
 
 		#len(df.index)
 		self.InfectCell.loc[0] = [self.origin, 1, numbersC]
@@ -145,68 +146,83 @@ class Game:
 		#Can drop "next" column for temp
 		temp = self.InVirus.loc[self.InVirus["next"] <= 0]
 		if not temp.empty:
-		    #Cells have life -dmg*viruses replicating
-		    #https://stackoverflow.com/questions/41340341/how-to-determine-the-length-of-lists-in-a-pandas-dataframe-column
-		    #Cells["Life"] -= (np.array([len(x) for x in Cells["InfectedBy"]]) * dmg) <<< issue: some viruses aren't replicating now
-		    #Get number of replicating viruses in relavent cells
-		    temp2 = temp["cellID"].value_counts()
-		    #Cells.loc[Cells["ID"].isin(temp2.index), "Life"] -= temp2.values*dmg <<< issue: subtracted value might not match cells
-		    #Merge based on cellID ensures replicating-virus counts are matched to ID when subracting
-		    self.Cells["Life"] -= pd.merge(self.Cells["ID"], temp2, left_on="ID", right_index=True, how="left")["count"].fillna(0).astype(int) * self.dmg
-		    
-		    #Create a new virus with `self.mutateChance` mutation:
-		    #For each virus generate np.array with geneCount floats (column via np.random.rand(size)). 
-		    #Apply a value comparison to create a mask that says whether a spot in a gene will mutate or not.
-		    temp["mask"] = pd.Series([np.random.rand(self.geneCount) for _ in range(len(self.InVirus.index))]).apply(lambda x: x< self.mutateChance)
+			#Cells have life -dmg*viruses replicating
+			#https://stackoverflow.com/questions/41340341/how-to-determine-the-length-of-lists-in-a-pandas-dataframe-column
+			#Cells["Life"] -= (np.array([len(x) for x in Cells["InfectedBy"]]) * dmg) <<< issue: some viruses aren't replicating now
+			#Get number of replicating viruses in relavent cells
+			temp2 = temp["cellID"].value_counts()
+			#Cells.loc[Cells["ID"].isin(temp2.index), "Life"] -= temp2.values*dmg <<< issue: subtracted value might not match cells
+			#Merge based on cellID ensures replicating-virus counts are matched to ID when subracting
+			self.Cells["Life"] -= pd.merge(self.Cells["ID"], temp2, left_on="ID", right_index=True, how="left")["count"].fillna(0).astype(int) * self.dmg
+			
 
-		    # Function to replace specific values with random values based on a mask of True/False values
-		    #numbers and mask should be numpy arrays of same size
-		    def mutateSelected(numbers, mask):
-		        # Generate random values of the same shape as the array
-		        #print(numbers[mask])
-		        if (mask.any()):
-		            numbers[mask] = np.random.randint(len(self.characterDict), size=mask.sum())
-		        return numbers
+			#Remove viruses/cells if Life is < 0 (dead cells cannot replcate. Think of it as trying to use resources to replicate but resources not existing)
+			#Cells with life = 0 will still replicate viruses before they die (virus replication process finished. cell dies releasing new viruses)
+			#Create a boolean series that tells whether a virus at an index is in a dead cell
+			temp = self.InVirus["cellID"].isin(self.Cells.loc[self.Cells["Life"] < 0, "ID"])
+			#Remove rows/indices where temp is true
+			#print("removing viruses:", temp)
+			self.InVirus.drop(self.InVirus[temp].index, inplace=True)
+				
+			#Get remaining viruses
+			temp = self.InVirus.loc[self.InVirus["next"] <= 0]
+			
+			#Actual viral replication can start
+			if not temp.empty:
+				#Create a new virus with `self.mutateChance` mutation:
+				#For each virus generate np.array with geneCount floats (column via np.random.rand(size)). 
+				#Apply a value comparison to create a mask that says whether a spot in a gene will mutate or not.
+				temp["mask"] = pd.Series([np.random.rand(self.geneCount) for _ in range(len(self.InVirus.index))]).apply(lambda x: x< self.mutateChance)
 
-		    # Apply the function to the DataFrame
-		    #row['numbers'].copy() because copy(deep=True) doesn't actually deep copy numpy array within the column 
-		    #so changes to `temp`'s numpy arrays will result corresponding arrays in InVirus also changing. 
-		    temp["numbers"] = temp.apply(lambda row: mutateSelected(row['numbers'].copy(), row['mask']), axis=1)
+				# Function to replace specific values with random values based on a mask of True/False values
+				#numbers and mask should be numpy arrays of same size
+				def mutateSelected(numbers, mask):
+					# Generate random values of the same shape as the array
+					#print(numbers[mask])
+					if (mask.any()):
+						numbers[mask] = np.random.randint(len(self.characterDict), size=mask.sum())
+					return numbers
+
+				# Apply the function to the DataFrame
+				#row['numbers'].copy() because row['numbers'] references InVirus['numbers']
+				#so changes to `temp`'s numpy arrays will result corresponding arrays in InVirus also changing. 
+				#Note that InVirus.copy(deep=True) doesn't actually deep copy numpy array within the column either
+				temp["numbers"] = temp.apply(lambda row: mutateSelected(row['numbers'].copy(), row['mask']), axis=1)
 
 
-		    #convert np.array of numbers to characters, then string for virus name
-		    #https://stackoverflow.com/a/41678874
-		    #display(temp["numbers"].apply(lambda x: map(reverseDict, x)))
-		    #https://stackoverflow.com/a/55950051
-		    """mapping_ar = np.zeros(numb.max()+1,dtype=alph.dtype)
-		    mapping_ar[numb] = alph
-		    display(mapping_ar[temp["numbers"][0]])"""
-		    temp["Gene"] = temp["numbers"].apply(lambda x: ''.join(self.reverseDict[x]))
-		    
-		    #Add viruses to freeVirus 
-		    #(TODO: Start new infections with freeVirus before or after replicating???)
-		    self.FreeVirus = pd.concat([self.FreeVirus, temp[["Gene", "numbers"]]], axis=0, ignore_index=True)
-		    
-		    
-		    #reset temp virus "next" to vrate
-		    self.InVirus.loc[self.InVirus["next"] <= 0, "next"] = self.vrate
+				#convert np.array of numbers to characters, then string for virus name
+				#https://stackoverflow.com/a/41678874
+				#display(temp["numbers"].apply(lambda x: map(reverseDict, x)))
+				#https://stackoverflow.com/a/55950051
+				"""mapping_ar = np.zeros(numb.max()+1,dtype=alph.dtype)
+				mapping_ar[numb] = alph
+				display(mapping_ar[temp["numbers"][0]])"""
+				temp["Gene"] = temp["numbers"].apply(lambda x: ''.join(self.reverseDict[x]))
+				
+				#Add viruses to freeVirus 
+				#(TODO: Start new infections with freeVirus before or after replicating???)
+				self.FreeVirus = pd.concat([self.FreeVirus, temp[["Gene", "numbers"]]], axis=0, ignore_index=True)
+				
+				
+				#reset temp virus "next" to vrate
+				self.InVirus.loc[self.InVirus["next"] <= 0, "next"] = self.vrate
 
-		    
-		    #TODO: Add numbers to respective VirusTotal["Total Exist"]
+				
+				#TODO: Add numbers to respective VirusTotal["Total Exist"]
 
 		##########################################
 		#check for dead cells (Note that virus replication may kill cells)
 
 		#Get dead cells
-		temp = self.Cells.loc[self.Cells["Life"] <= 0]
+		temp = self.Cells.loc[self.Cells["Life"] <= 0, "ID"]
 		if not temp.empty:
-		    #Removing dead cells
-		    self.Cells.drop(list(temp.index), inplace=True)
-		    
-		    #Removing Viruses infecting those cells (drop viruses that have same ID as dropped cells)
-		    self.InVirus.drop(self.InVirus["cellID"].isin(temp["ID"]).index, inplace=True)
-		    
-		    #(Not needed?) Reduce "Num Cell Infected" in InfectCell
+			#Removing dead cells
+			self.Cells.drop(temp.index, inplace=True)
+			
+			#Removing Viruses infecting those cells (drop viruses that have same ID as dropped cells)
+			self.InVirus.drop(self.InVirus[self.InVirus["cellID"].isin(temp)].index, inplace=True)
+			
+			#(Not needed?) Reduce "Num Cell Infected" in InfectCell
 
 
 		##########################################
@@ -224,26 +240,40 @@ class Game:
 
 		##########################################
 		#Replicating Cells
-		#Cells["Next Replication"] -= 1
-		#temp = Cells.loc[Cells["Life"] <= 0]
-		#if not temp.empty:
-		    #create another cell for each Cell (duplicate selected rows)
-		    #make "InfectedBy" = blank numpy array
-		    #modify cell ID np.random.randint(sys.maxsize, size=10)
-		    #concat table to current table. 
-
-		#Add new cell counts to CellTotal["Total Exist"]
+		self.Cells["Next Replication"] -= 1
+		#Get replicating cells (or new cells)
+		temp = self.Cells.loc[self.Cells["Next Replication"] <= 0]
+		if not temp.empty:
+			#create another cell for each Cell (duplicate selected rows)
+			#Perhaps just create a new dataframe?
+			
+			#Create new IDs
+			temp["ID"] = np.random.randint(sys.maxsize, size=len(temp.index))
+			
+			#Reset "InfectedBy" in case there are any stray viruses
+			#***May modify this section in the future for lysogenic viruses***
+			#a[0] = [[]] * len(a) <<< Issue: Creates references to same list
+			#a[0] = a[0].apply(lambda x: []) <<< "Extra overhead"
+			temp["InfectedBy"] = [[] for i in range(len(temp.index))]
+			
+			#Reset "Life" of new cells
+			temp["Life"] = self.life
+			
+			self.Cells = pd.concat([self.Cells, temp], axis=0, ignore_index=True)
+			
+			#Reset "Next Replication" to self.crate
+			self.Cells.loc[self.Cells["Next Replication"] <= 0, "Next Replication"] = self.crate
 
 		##########################################
 		#Update summary
-		    #Update Alive count in CellTotal
-		    #***Update later***
-		    #Cells.groupby("Gene").count()
-		    #Cells["Gene"].value_counts()
-		    
-		    #Update Virus count in Virus Total["Curr Existing"]
-		    
-		    #Set InfectCells as   Select Cells[Infected By != empty], groupby "Gene"
+			#Update Alive count in CellTotal
+			#***Update later***
+			#Cells.groupby("Gene").count()
+			#Cells["Gene"].value_counts()
+			
+			#Update Virus count in Virus Total["Curr Existing"]
+			
+			#Set InfectCells as   Select Cells[Infected By != empty], groupby "Gene"
 
 		return
 
