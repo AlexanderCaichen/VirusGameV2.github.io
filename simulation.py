@@ -45,7 +45,7 @@ class Game:
 
 		#Note that modifying class variables (not instance variables) will also modify other instances of class
 		self.Cells = pd.DataFrame(columns=["Gene", "Next Replication", "Life", "InfectedBy", "numbers", "ID"])
-		self.FreeVirus = pd.DataFrame(columns=["Gene", "numbers"])
+		self.FreeVirus = pd.DataFrame(columns=["Gene", "numbers", "nextCell"])
 		#Summary stats of cells being infected. Add "InfectedBy"?
 		self.InfectCell = pd.DataFrame(columns=["Gene", "Num Cell Infected", "numbers"])
 		#Viruses infecting cell
@@ -163,6 +163,8 @@ class Game:
 			#Remove rows/indices where temp is true
 			#print("removing viruses:", temp)
 			self.InVirus.drop(self.InVirus[temp].index, inplace=True)
+			#Reset index here fixes bug where indices don't line up later when setting a "mask", resulting in nan values
+			self.InVirus.reset_index(drop = True, inplace=True)
 				
 			#Get remaining viruses
 			temp = self.InVirus.loc[self.InVirus["next"] <= 0]
@@ -199,8 +201,8 @@ class Game:
 				display(mapping_ar[temp["numbers"][0]])"""
 				temp["Gene"] = temp["numbers"].apply(lambda x: ''.join(self.reverseDict[x]))
 				
-				#Add viruses to freeVirus 
-				#(TODO: Start new infections with freeVirus before or after replicating???)
+				#Add viruses to self.FreeVirus 
+				#(TODO: Start new infections with self.FreeVirus before or after replicating???)
 				self.FreeVirus = pd.concat([self.FreeVirus, temp[["Gene", "numbers"]]], axis=0, ignore_index=True)
 				
 				
@@ -218,24 +220,59 @@ class Game:
 		if not temp.empty:
 			#Removing dead cells
 			self.Cells.drop(temp.index, inplace=True)
+			self.Cells.reset_index(drop = True, inplace=True)
 			
 			#Removing Viruses infecting those cells (drop viruses that have same ID as dropped cells)
 			self.InVirus.drop(self.InVirus[self.InVirus["cellID"].isin(temp)].index, inplace=True)
+			self.InVirus.reset_index(drop = True, inplace=True)
 			
 			#(Not needed?) Reduce "Num Cell Infected" in InfectCell
 
 
 		##########################################
-		#Infection time
+		#Infection by free viruses
 		#New dataset: column of np.random.randint(Cell.index) to determine which cell to infect
-		#New dataset: merge Cells and freeVirus based on index and column being equal
+		#New dataset: merge Cells and self.FreeVirus based on index and column being equal
 		#New column infectchance = 1 - sum(abs(numbersV - numbersC))/(len(characterDict)*geneCount)
 		#New column of np.random.rand. If value <= infectchance then proceed with infection
 		#Add viruses to InVirus and Cells["Infected By"]
 
-		#freeVirus 
-		#using random.choice instead of random.randint in the case there are holes in index number for whatever reason
-		#temp["nextCell"] = np.random.choice(Cells.index, size=len(freeVirus.index))
+
+		if not self.FreeVirus.empty:
+			#using random.choice instead of random.randint in the case there are holes in index number for whatever reason
+			self.FreeVirus["nextCell"] = np.random.choice(self.Cells.index, size=len(self.FreeVirus.index))
+			temp = pd.merge(self.Cells, self.FreeVirus, left_index=True, right_on="nextCell", how="right")
+			temp["success"] = (1 - np.abs(temp["numbers_x"] - temp["numbers_y"]).apply(sum)/(len(self.characterDict)*self.geneCount)) < np.random.rand(len(temp.index))
+
+			#drop rows in self.FreeVirus where "success" is True in temp via index (these viruses successfully infected another cell)
+			#right merge ensures virus indices don't change
+			newInfections = temp.loc[temp["success"]][["Gene_y", "ID", "numbers_y"]]
+			
+			if not newInfections.empty:
+				self.FreeVirus.drop(newInfections.index, inplace=True)
+				self.FreeVirus.reset_index(drop = True, inplace=True)
+
+				#add viruses to InVirus
+				#Format data correctly
+				newInfections["next"] = self.vrate
+				newInfections = newInfections.rename(columns={"Gene_y": "Gene", "ID": "cellID", "numbers_y":"numbers"})
+
+				self.InVirus = pd.concat([self.InVirus, newInfections], axis=0, ignore_index=True)
+
+				"""
+				print("newInf")
+				display(newInfections)
+				#temp["InfectedBy"] = temp.apply(lambda x: np.append(x['InfectedBy'], x["Gene_y"]), axis=1)
+				"""
+
+				#Group Viruses together into lists based on which cell's being infected
+				infectList = newInfections[["cellID", "Gene"]].groupby("cellID")["Gene"].apply(list).reset_index()
+				#For each row in infectList, add the contents of the list in "Gene" to Cell's "InfectedBy"
+				#Potential (miniscule possibility) error: more than one cell has row["cellID"]
+				infectList.apply(lambda row: 
+					self.Cells.at[self.Cells[self.Cells.ID == row["cellID"]].index[0], "InfectedBy"].extend(row["Gene"])
+					, axis=1)
+
 
 
 		##########################################

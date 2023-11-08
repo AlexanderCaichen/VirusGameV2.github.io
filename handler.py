@@ -84,7 +84,7 @@ async def runGame(websocket, game):
 #Send all tables to JS
 async def printTables(websocket, game):
 	await websocket.send(json.dumps({"type": "table", "name":"Cells", "data": game.Cells.head(10).iloc[:, :-2].to_html()}))
-	await websocket.send(json.dumps({"type": "table", "name":"FreeVirus", "data": game.FreeVirus.head(10).iloc[:, :-1].to_html()}))
+	await websocket.send(json.dumps({"type": "table", "name":"FreeVirus", "data": game.FreeVirus.head(10).iloc[:, :-2].to_html()}))
 	await websocket.send(json.dumps({"type": "table", "name":"InfectCell", "data": game.InfectCell.head(10).iloc[:, :-1].to_html()}))
 
 	data = game.CellTotal.head(10)
