@@ -2,7 +2,8 @@
 
 #For handling game logic
 
-import pandas as pd 
+import pandas as pd
+pd.options.mode.chained_assignment = None
 import numpy as np
 
 import string
@@ -26,9 +27,9 @@ class Game:
 	#cLifeSpan: how long it takes for your cell to die (life)
 	#???vLifeSpan: how long it takes for your virus to die if not infect cell (see it as immune system naturally clearing foreign bodies???)
 	#dmg: how much damage virus does to cell each replication
-	def __init__(self, geneCount: int = 5, vMutRate: float = 0.2, cMutRate: float = 5, startingCells: int = 4, repCRate: int = 5, repVRate: int = 3, vLifeSpan: int = 15, lifeSpan: int = 8, dmg: int = 1):
+	def __init__(self, geneCount: int = 5, vMutRate: float = 0.2, cMutRate: float = 5, startingCells: int = 4, repCRate: int = 5, repVRate: int = 3, vLifeSpan: int = 15, lifeSpan: int = 10, dmg: int = 1):
 		self.geneCount = geneCount
-		self.mutateChance = vMutRate
+		self.mutateChance = vMutRate/geneCount
 		self.cooldown = cMutRate
 		#startingCells
 		self.crate = repCRate
@@ -144,7 +145,7 @@ class Game:
 			#Cells["Life"] -= (np.array([len(x) for x in Cells["InfectedBy"]]) * dmg) <<< issue: some viruses aren't replicating now
 			#Get number of replicating viruses in relavent cells
 			temp2 = temp["cellID"].value_counts()
-			#Cells.loc[Cells["ID"].isin(temp2.index), "Life"] -= temp2.values*dmg <<< issue: subtracted value might not match cells
+			#Cells.loc[Cells["ID"].isin(temp2.index), "Life"] -= temp2.values*dmg <<< issue: subtracted value might not match cells (index mismatch)
 			#Merge based on cellID ensures replicating-virus counts are matched to ID when subracting from life
 			self.Cells["Life"] -= pd.merge(self.Cells["ID"], temp2, left_on="ID", right_index=True, how="left")["count"].fillna(0).astype(int) * self.dmg
 			#Dead cells will be removed later
@@ -328,18 +329,19 @@ class Game:
 
 		##########################################
 		#Update summary
-			#Merge operations to update CellsTotal and VirusTotal are performed throughout the function instead of at the
-			#end to prevent multiple merges from being run every time the function is run.
+		#Merge operations to update CellsTotal and VirusTotal are performed throughout the function instead of at the
+		#end to prevent multiple merges from being run every time the function is run.
+
+		#Updating CellTotal["Num Cell Infected"]
+		if not self.Cells.empty:
+			temp = self.Cells[["Gene"]]
+			#Check for infected cells
+			temp["Num Cell Infected"] = [len(x)>0 for x in self.Cells["InfectedBy"]]
+			temp = temp.groupby("Gene").sum()
+			self.CellTotal.drop("Num Cell Infected", axis=1, inplace=True)
+			self.CellTotal = self.CellTotal.merge(temp, on="Gene")
 
 		return
-
-
-	#Gives an array of infection chance (1xN) given two numpy arrays (1xN) each containing of genetic strings.
-	def infectionChance(self, cellGene: str, virusGene:str) -> float:
-		#https://stackoverflow.com/questions/35215161/most-efficient-way-to-map-function-over-numpy-array
-
-		#TBA
-		return 0.1
 
 
 	#Update self.origin gene at position "index" with "newChar"

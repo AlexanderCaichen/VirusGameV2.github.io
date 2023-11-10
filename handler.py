@@ -88,10 +88,13 @@ async def printTables(websocket, game):
 	await websocket.send(json.dumps({"type": "table", "name":"InVirus", "data": game.InVirus.head(10).iloc[:, :-1].to_html()}))
 
 	data = game.CellTotal.head(10).set_index('Gene')
+	data = data.sort_values(by=["Curr Alive", "Total Exist"], ascending=False)
 	data.loc["Total"] = game.CellTotal.sum()
 	data = data.astype(int)
 	await websocket.send(json.dumps({"type": "table", "name":"CellTotal", "data": data.to_html()}))
+	
 	data = game.VirusTotal.head(10).set_index('Gene')
+	data = data.sort_values(by=["Curr Existing", "Total Exist"], ascending=False)
 	data.loc["Total"] = game.VirusTotal.sum()
 	data = data.astype(int)
 	await websocket.send(json.dumps({"type": "table", "name":"VirusTotal", "data": data.to_html()}))
