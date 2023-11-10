@@ -83,15 +83,17 @@ async def runGame(websocket, game):
 
 #Send all tables to JS
 async def printTables(websocket, game):
-	await websocket.send(json.dumps({"type": "table", "name":"Cells", "data": game.Cells.head(10).iloc[:, :-2].to_html()}))
+	await websocket.send(json.dumps({"type": "table", "name":"Cells", "data": game.Cells.head(10).iloc[:, :-1].to_html()}))
 	await websocket.send(json.dumps({"type": "table", "name":"FreeVirus", "data": game.FreeVirus.head(10).iloc[:, :-2].to_html()}))
-	await websocket.send(json.dumps({"type": "table", "name":"InfectCell", "data": game.InfectCell.head(10).iloc[:, :-1].to_html()}))
+	await websocket.send(json.dumps({"type": "table", "name":"InVirus", "data": game.InVirus.head(10).iloc[:, :-1].to_html()}))
 
-	data = game.CellTotal.head(10)
+	data = game.CellTotal.head(10).set_index('Gene')
 	data.loc["Total"] = game.CellTotal.sum()
+	data = data.astype(int)
 	await websocket.send(json.dumps({"type": "table", "name":"CellTotal", "data": data.to_html()}))
-	data = game.VirusTotal.head(10)
+	data = game.VirusTotal.head(10).set_index('Gene')
 	data.loc["Total"] = game.VirusTotal.sum()
+	data = data.astype(int)
 	await websocket.send(json.dumps({"type": "table", "name":"VirusTotal", "data": data.to_html()}))
 
 

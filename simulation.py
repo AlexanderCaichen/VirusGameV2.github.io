@@ -44,14 +44,14 @@ class Game:
 		self.reverseDict = np.array([char for char in string.ascii_lowercase + string.digits])
 
 		#Note that modifying class variables (not instance variables) will also modify other instances of class
-		self.Cells = pd.DataFrame(columns=["Gene", "Next Replication", "Life", "InfectedBy", "numbers", "ID"])
+		self.Cells = pd.DataFrame(columns=["Gene", "Next Replication", "Life", "InfectedBy", "ID", "numbers"])
 		self.FreeVirus = pd.DataFrame(columns=["Gene", "numbers", "nextCell"])
 		#Summary stats of cells being infected. Add "InfectedBy"?
-		self.InfectCell = pd.DataFrame(columns=["Gene", "Num Cell Infected", "numbers"])
+		#self.InfectCell = pd.DataFrame(columns=["Gene", "Num Cell Infected", "numbers"])
 		#Viruses infecting cell
 		self.InVirus = pd.DataFrame(columns=["Gene", "cellID", "next", "numbers"])
-		self.CellTotal = pd.DataFrame(columns=["Gene", "Total Exist", "Curr Alive"]).set_index('Gene')
-		self.VirusTotal = pd.DataFrame(columns=["Gene", "Total Exist", "Curr Existing"]).set_index('Gene')
+		self.CellTotal = pd.DataFrame(columns=["Gene", "Total Exist", "Curr Alive", "Num Cell Infected"])
+		self.VirusTotal = pd.DataFrame(columns=["Gene", "Total Exist", "Curr Existing"])
 		#	  Need row for total stats
 
 		
@@ -125,23 +125,16 @@ class Game:
 		self.InVirus.loc[0] = [newVName, self.Cells.at[0, "ID"], self.vrate+1, numbersV]
 
 		#len(df.index)
-		self.InfectCell.loc[0] = [self.origin, 1, numbersC]
-		self.CellTotal.loc[self.origin] = [startingCells, startingCells]
-		self.VirusTotal.loc[newVName] = [1, 1]
+		#self.InfectCell.loc[0] = [self.origin, 1, numbersC]
+		self.CellTotal.loc[0] = [self.origin, startingCells, startingCells, 1]
+		self.VirusTotal.loc[0] = [newVName, 1, 1]
 
 
 	#Perform 1 loop of simulation
 	def forwardTime(self):
-		"""
-		self.Cells = pd.DataFrame(np.random.randint(0,50,size=(50, 4)), columns=list('ABCD'))
-		self.FreeVirus = pd.DataFrame(np.random.randint(0,50,size=(50, 4)), columns=list('ABCD'))
-		self.InfectCell = pd.DataFrame(np.random.randint(0,50,size=(50, 4)), columns=list('ABCD'))
-		self.CellTotal = pd.DataFrame(np.random.randint(0,50,size=(50, 4)), columns=list('ABCD'))
-		self.VirusTotal = pd.DataFrame(np.random.randint(0,50,size=(50, 4)), columns=list('ABCD'))
-		"""
 		self.Cells["Life"] -= 1
-
 		self.InVirus["next"] -= 1
+
 		#Get replicating viruses (note that dead cells shouldn't produce viruses)
 		#Can drop "next" column for temp
 		temp = self.InVirus.loc[self.InVirus["next"] <= 0]
@@ -152,19 +145,24 @@ class Game:
 			#Get number of replicating viruses in relavent cells
 			temp2 = temp["cellID"].value_counts()
 			#Cells.loc[Cells["ID"].isin(temp2.index), "Life"] -= temp2.values*dmg <<< issue: subtracted value might not match cells
-			#Merge based on cellID ensures replicating-virus counts are matched to ID when subracting
+			#Merge based on cellID ensures replicating-virus counts are matched to ID when subracting from life
 			self.Cells["Life"] -= pd.merge(self.Cells["ID"], temp2, left_on="ID", right_index=True, how="left")["count"].fillna(0).astype(int) * self.dmg
-			
+			#Dead cells will be removed later
 
-			#Remove viruses/cells if Life is < 0 (dead cells cannot replcate. Think of it as trying to use resources to replicate but resources not existing)
+			#Remove viruses/cells if Life is < 0 (dead cells cannot replicate. Think of it as trying to use resources to replicate but resources not existing)
 			#Cells with life = 0 will still replicate viruses before they die (virus replication process finished. cell dies releasing new viruses)
 			#Create a boolean series that tells whether a virus at an index is in a dead cell
-			temp = self.InVirus["cellID"].isin(self.Cells.loc[self.Cells["Life"] < 0, "ID"])
+			temp = self.InVirus[self.InVirus["cellID"].isin(self.Cells.loc[self.Cells["Life"] < 0, "ID"])]
 			#Remove rows/indices where temp is true
 			#print("removing viruses:", temp)
-			self.InVirus.drop(self.InVirus[temp].index, inplace=True)
+			self.InVirus.drop(temp.index, inplace=True)
 			#Reset index here fixes bug where indices don't line up later when setting a "mask", resulting in nan values
 			self.InVirus.reset_index(drop = True, inplace=True)
+
+			#Update VirusTotal["Curr Existing"]
+			self.VirusTotal = pd.merge(self.VirusTotal, temp.Gene.value_counts(), on="Gene", how="outer").fillna(0)
+			self.VirusTotal["Curr Existing"] -= self.VirusTotal["count"]
+			self.VirusTotal.drop("count", axis=1, inplace=True)
 				
 			#Get remaining viruses
 			temp = self.InVirus.loc[self.InVirus["next"] <= 0]
@@ -206,26 +204,47 @@ class Game:
 				self.FreeVirus = pd.concat([self.FreeVirus, temp[["Gene", "numbers"]]], axis=0, ignore_index=True)
 				
 				
-				#reset temp virus "next" to vrate
+				#reset temp virus (remaining viruses) "next" to vrate
 				self.InVirus.loc[self.InVirus["next"] <= 0, "next"] = self.vrate
 
 				
-				#TODO: Add numbers to respective VirusTotal["Total Exist"]
+				#Add new virus numbers to VirusTotal["Total Exist"] and VirusTotal["Curr Existing"]
+				#fillna fills in values in new rows created from merge
+				self.VirusTotal = pd.merge(self.VirusTotal, temp.Gene.value_counts(), on="Gene", how="outer").fillna(0)
+				self.VirusTotal["Total Exist"] += self.VirusTotal["count"]
+				self.VirusTotal["Curr Existing"] += self.VirusTotal["count"]
+				self.VirusTotal.drop("count", axis=1, inplace=True)
+
 
 		##########################################
 		#check for dead cells (Note that virus replication may kill cells)
 
 		#Get dead cells
-		temp = self.Cells.loc[self.Cells["Life"] <= 0, "ID"]
+		temp = self.Cells.loc[self.Cells["Life"] <= 0]
 		if not temp.empty:
 			#Removing dead cells
 			self.Cells.drop(temp.index, inplace=True)
 			self.Cells.reset_index(drop = True, inplace=True)
+
+			#Update CellTotal["Curr Alive"]
+			#Left merge may be sufficient here.
+			#fillna fills in "count" values for rows where viruses aren't subtracted.
+			self.CellTotal = pd.merge(self.CellTotal, temp.Gene.value_counts(), on="Gene", how="outer").fillna(0)
+			self.CellTotal["Curr Alive"] -= self.CellTotal["count"]
+			self.CellTotal.drop("count", axis=1, inplace=True)
+
 			
 			#Removing Viruses infecting those cells (drop viruses that have same ID as dropped cells)
-			self.InVirus.drop(self.InVirus[self.InVirus["cellID"].isin(temp)].index, inplace=True)
+			#TODO: viruses are released once cell dies???
+			temp = self.InVirus[self.InVirus["cellID"].isin(temp["ID"])]
+			self.InVirus.drop(temp.index, inplace=True)
 			self.InVirus.reset_index(drop = True, inplace=True)
-			
+
+			#Update VirusTotal["Curr Existing"]
+			self.VirusTotal = pd.merge(self.VirusTotal, temp.Gene.value_counts(), on="Gene", how="outer").fillna(0)
+			self.VirusTotal["Curr Existing"] -= self.VirusTotal["count"]
+			self.VirusTotal.drop("count", axis=1, inplace=True)
+
 			#(Not needed?) Reduce "Num Cell Infected" in InfectCell
 
 
@@ -274,13 +293,18 @@ class Game:
 					, axis=1)
 
 
-
 		##########################################
 		#Replicating Cells
 		self.Cells["Next Replication"] -= 1
 		#Get replicating cells (or new cells)
 		temp = self.Cells.loc[self.Cells["Next Replication"] <= 0]
 		if not temp.empty:
+			#Update CellsTotal
+			self.CellTotal = pd.merge(self.CellTotal, temp.Gene.value_counts(), on="Gene", how="outer").fillna(0)
+			self.CellTotal["Total Exist"] += self.CellTotal["count"]
+			self.CellTotal["Curr Alive"] += self.CellTotal["count"]
+			self.CellTotal.drop("count", axis=1, inplace=True)
+
 			#create another cell for each Cell (duplicate selected rows)
 			#Perhaps just create a new dataframe?
 			
@@ -301,16 +325,11 @@ class Game:
 			#Reset "Next Replication" to self.crate
 			self.Cells.loc[self.Cells["Next Replication"] <= 0, "Next Replication"] = self.crate
 
+
 		##########################################
 		#Update summary
-			#Update Alive count in CellTotal
-			#***Update later***
-			#Cells.groupby("Gene").count()
-			#Cells["Gene"].value_counts()
-			
-			#Update Virus count in Virus Total["Curr Existing"]
-			
-			#Set InfectCells as   Select Cells[Infected By != empty], groupby "Gene"
+			#Merge operations to update CellsTotal and VirusTotal are performed throughout the function instead of at the
+			#end to prevent multiple merges from being run every time the function is run.
 
 		return
 
