@@ -106,3 +106,13 @@ tr:hover {background-color: #D6EEEE;}
 	color:black;
 	background: limegreen;
 }
+/***********************************************************/
+
+.footer {
+   position: fixed;
+   left: 0;
+   bottom: 0;
+   width: 100%;
+   color: #424242;
+   text-align: center;
+}

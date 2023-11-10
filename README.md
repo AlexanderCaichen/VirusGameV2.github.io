@@ -22,12 +22,13 @@ One can alternatively after Step 2:
 ---
 
 Current content upon starting game:
-- 5 tables that change to have random values every second.
+- 5 tables showing what cells are infected, what viruses exist (infecting or not), and total statistics.
 - A timer.
 - A pause button.
 - A series of buttons that can change contents once you click on one with a mouse then type with a keyboard.
 
 TBA:
-- Backend logic for game
+- Stop viruses from going extinct within ~60 ticks (probably need to increase cell life)
+- Allow changing of own genome (add new cells)
 - Settings/New game modes
 - A better, more interesting interface
