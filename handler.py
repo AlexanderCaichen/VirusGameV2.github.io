@@ -16,6 +16,7 @@ import websockets
 import http
 import signal
 import os
+import time
 
 import json
 
@@ -25,10 +26,16 @@ import sys
 assert sys.version_info >= (3, 10)
 
 
+paused = False
+
 async def handler(websocket):
 	#message = await websocket.recv()
 	async for message in websocket:
 		try:
+			global paused
+			paused = False
+
+			#TODO: implement settings for game.
 			event = json.loads(message)
 
 			#Start game and begin simulation
@@ -47,7 +54,8 @@ async def handler(websocket):
 #TODO: create new connection in case `except websockets.ConnectionClosedOK:`
 async def runGame(websocket, game):
 	print("printing stuff")
-	paused = False
+
+	ticktock = [0,0]
 
 	#Requiring a "confirmation message" from root.js allows more synchronization between the cloud and server.
 	async for message in websocket:
@@ -67,19 +75,34 @@ async def runGame(websocket, game):
 					print("Sorry about the bug.")
 				break
 			case "continue":
-				game.forwardTime()
-				await printTables(websocket, game)
-				await asyncio.sleep(1)
+				ticktock[1] = time.perf_counter()
+				asyncio.create_task(forwardTime(websocket, game, ticktock))
+
 			case "keyMod":
 				game.modifyGene(event["index"], event["newChar"])
 				print(game.origin)
 			case "pause":
+				global paused
 				paused = event["yes"]
 			case _:
 				print(event)
 
 	print("Exiting game")
 
+
+async def forwardTime(websocket, game, ticktock):
+	timeLeft = 1 - (ticktock[1] - ticktock[0])
+	print(f"Coroutine waiting {timeLeft:0.4f} seconds")
+	await asyncio.sleep(timeLeft)
+
+	global paused
+	if (paused):
+		print("Game paused during forwardTime() call. Canceling.")
+		return
+
+	game.forwardTime()
+	await printTables(websocket, game)
+	ticktock[0] = time.perf_counter()
 
 #Send all tables to JS
 async def printTables(websocket, game):
