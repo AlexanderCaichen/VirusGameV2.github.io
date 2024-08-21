@@ -24,7 +24,7 @@ class Game:
 	#repCRate: time it takes for each of your cells to replicate
 	#repVRate: time it takes for each virus to replicate after infecting cell
 	#???repVRate2: How many viruses replicate
-	#cLifeSpan: how long it takes for your cell to die (life)
+	#LifeSpan: how long it takes for your cell to die (life)
 	#???vLifeSpan: how long it takes for your virus to die if not infect cell (see it as immune system naturally clearing foreign bodies???)
 	#dmg: how much damage virus does to cell each replication
 	def __init__(self, geneCount: int = 5, vMutRate: float = 0.2, cMutRate: float = 5, startingCells: int = 4, repCRate: int = 5, repVRate: int = 3, vLifeSpan: int = 15, lifeSpan: int = 10, dmg: int = 1):
@@ -248,6 +248,9 @@ class Game:
 
 			#(Not needed?) Reduce "Num Cell Infected" in InfectCell
 
+
+		if self.Cells.empty:
+			return
 
 		##########################################
 		#Infection by free viruses

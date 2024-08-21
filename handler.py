@@ -37,10 +37,9 @@ async def handler(websocket):
 
 			#TODO: implement settings for game.
 			event = json.loads(message)
-
 			#Start game and begin simulation
 			if (event["type"] == "starting" and event["yes"]):
-				game = Game()
+				game = Game(geneCount = int(event["geneCount"]), vMutRate = float(event["vMutRate"]), cMutRate = int(event["cMutRate"]), startingCells = int(event["startingCells"]), repCRate = int(event["repCRate"]), repVRate = int(event["repVRate"]), vLifeSpan = int(event["vLifeSpan"]), lifeSpan = int(event["lifeSpan"]), dmg = int(event["dmg"]))
 				event = {
 					"type": "baseGenome",
 					"data": game.origin
@@ -92,12 +91,12 @@ async def runGame(websocket, game):
 
 async def forwardTime(websocket, game, ticktock):
 	timeLeft = 1 - (ticktock[1] - ticktock[0])
-	print(f"Coroutine waiting {timeLeft:0.4f} seconds")
+	#print(f"Coroutine waiting {timeLeft:0.4f} seconds")
 	await asyncio.sleep(timeLeft)
 
 	global paused
 	if (paused):
-		print("Game paused during forwardTime() call. Canceling.")
+		print("Game paused during forwardTime() call. Canceling update.")
 		return
 
 	game.forwardTime()

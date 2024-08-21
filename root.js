@@ -9,6 +9,17 @@ var pause = false;
 var primed = null;
 var primeFunc = null;
 
+// Variables for setting game initial states
+var geneCount = 5
+var vMutRate = 0.2
+var cMutRate = 5 
+var startingCells = 4
+var repCRate = 5
+var repVRate = 3
+var vLifeSpan = 15
+var lifeSpan = 10
+var dmg = 1
+
 //const websocket = new WebSocket("ws://localhost:8001/");
 //https://stackoverflow.com/questions/34589488/es6-immediately-invoked-arrow-function
 //Doesn't make sense to make defining "websocket" a separate function if the function won't be used ever again.
@@ -110,7 +121,24 @@ function Init() {
 
 // Display Setting interface. Requires Init() to be called beforehand.
 function Set() {
-	document.getElementById("menu").innerHTML = "<h1> Settings </h1><br><br><p style=\"color:white\">Nothing to see here for now</p><button class=\"button\" onclick=\"Home()\">Back</button>";
+	let settings = "<h1> Settings </h1><br><br>";
+
+	/*
+	var varlist = [geneCount, vMutRate, cMutRate, startingCells, repCRate, repVRate, vLifeSpan, lifeSpan, dmg]
+	for (var i in varlist) {
+		settings += "<body><label for='" + Object.keys({i})[0] + "'>" + Object.keys({i}) + ": </label><input type='number' id='" + Object.keys({i})[0] + "' name='quantity' min='0' step='1' value='" + i.toString() + "'></body><br>"
+	} */
+	settings += "<body><label for='geneCount'>Length of Cell Gene: </label><input type='number' id='geneCount' name='quantity' min='0' step='1' value='" + geneCount + "'></body><br>";
+	settings += "<body><label for='vMutRate'>Mutation rate of virus: </label><input type='number' id='vMutRate' name='quantity' min='0' step='0.1' value='" + vMutRate + "'></body><br>";
+	settings += "<body><label for='cMutRate'>Cooldown to mutate cell: </label><input type='number' id='cMutRate' name='quantity' min='0' step='1' value='" + cMutRate + "'></body><br>";
+	settings += "<body><label for='startingCells'>Number of starting cells: </label><input type='number' id='startingCells' name='quantity' min='0' step='1' value='" + startingCells + "'></body><br>";
+	settings += "<body><label for='repCRate'>Time for cells to replicate: </label><input type='number' id='repCRate' name='quantity' min='0' step='1' value='" + repCRate + "'></body><br>";
+	settings += "<body><label for='repVRate'>Time for virus to replicate: </label><input type='number' id='repVRate' name='quantity' min='0' step='1' value='" + repVRate + "'></body><br>";
+	settings += "<body><label for='vLifeSpan'>How long viruses survive outside cells (UNIMPLEMENTED): </label><input type='number' id='vLifeSpan' name='quantity' min='0' step='1' value='" + vLifeSpan + "'></body><br>";
+	settings += "<body><label for='lifeSpan'>How long cells live: </label><input type='number' id='lifeSpan' name='quantity' min='0' step='1' value='" + lifeSpan + "'></body><br>";
+	settings += "<body><label for='dmg'>Amount of damage virus deals to cell upon replication: </label><input type='number' id='dmg' name='quantity' min='0' step='1' value='" + dmg + "'></body><br>";
+
+	document.getElementById("menu").innerHTML = settings + "<button class=\"button\" onclick=\"saveAll();Home();\">Back</button>";
 }
 
 
@@ -118,6 +146,19 @@ function Set() {
 function Home() {
 	//Flex attempts to split Centered container into (number of elements) areas horizontally. div below "centered" prevents horizontal distribution/splitting
 	document.getElementById("menu").innerHTML = "<h1> Virus Simulator </h1><button class=\"button\" onclick=\"StartGame()\">Start Game</button><br><button class=\"button\" onclick=\"Set()\">Settings</button>";
+}
+
+//Saves all settings
+function saveAll() {
+	geneCount = document.getElementById("geneCount").value;
+	vMutRate = document.getElementById("vMutRate").value;
+	cMutRate = document.getElementById("cMutRate").value;
+	startingCells = document.getElementById("startingCells").value;
+	repCRate = document.getElementById("repCRate").value;
+	repVRate = document.getElementById("repVRate").value;
+	vLifeSpan = document.getElementById("vLifeSpan").value;
+	lifeSpan = document.getElementById("lifeSpan").value;
+	dmg = document.getElementById("dmg").value;
 }
 
 // Display game interface
@@ -130,7 +171,7 @@ function StartGame() {
 	document.getElementById("GameTable").innerHTML = "<div class=\"row\"><div class=\"column\">Cells<div id = \"Cells\">TBA</div></div><div class=\"column\">Free Floating Viruses<div id = \"FreeVirus\">TBA</div></div><div class=\"column\">Infecting Viruses<div id = \"InVirus\">TBA</div></div><div class=\"column\">Cell Totals<div id = \"CellTotal\">TBA</div></div><div class=\"column\">Virus Totals<div id = \"VirusTotal\">TBA</div></div></div>";
 
 	//Starting game
-	const event = {type: "starting", yes: true};
+	const event = {type: "starting", yes: true, geneCount: geneCount, vMutRate: vMutRate, cMutRate: cMutRate, startingCells: startingCells, repCRate: repCRate, repVRate: repVRate, vLifeSpan: vLifeSpan, lifeSpan: lifeSpan, dmg: dmg};
 	websocket.send(JSON.stringify(event));
 }
 
